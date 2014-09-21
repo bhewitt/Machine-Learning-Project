@@ -1,6 +1,9 @@
 Machine-Learning-Project
 ========================
-### To dos
-- [ ] Read documentation on the data  
-- [ ] Review cross validation process  
-- [ ] 
+
+### Project overview
+
+1. For the writeup, please see MLWriteup.html
+2. For the code used in the prediction, see MLSubmissionCode.R  
+
+Thank you!
