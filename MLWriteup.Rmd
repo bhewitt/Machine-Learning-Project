@@ -58,19 +58,21 @@ preProc <- preProcess(trainingclean[,-49], method="pca")
 ### Fitting the model
 The model fit will use the random forest method, after preprocessing with Principle Component Analysis.  
 ```{r, cache=TRUE, message=FALSE, warning=FALSE}
+set.seed(12322)
 modFit <- train(classe ~ ., data = trainingclean, method = "rf", preProcess = "pca")
-modFit2
+plot(modFit)
+modFit
 ```
 
 Looking at the model output it estimates the out of sample accuracy as 100%. However, this is a very optimistic estimate as it was based on the training data. The train function uses cross validation to arrive at the best fitting model to the training data. The method used by default is bootstrap resampling.  
   
 Since we set aside a "testing" set earlier, we can apply the model to the test data set to get better estimate of the out of sample accuracy.
 
-```{r}
-confusionMatrix(predict(modFit2,testing),testing$classe)
+```{r, message=FALSE, warning=FALSE}
+confusionMatrix(predict(modFit,testing),testing$classe)
 ```
 
-In this case, the accuracy on the test data is slightly above what it was on the training data. The expected out of sample error is .003%.  
+In this case, the accuracy on the test data is slightly above what it was on the training data. The expected out of sample error is 2%.  
 
 ### Write the files for submission
 The function below creates individual files for the data to be submitted.  

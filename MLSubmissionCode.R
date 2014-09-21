@@ -32,6 +32,7 @@ preProc <- preProcess(trainingclean[,-49], method="pca")
 preProc$rotation
 
 # Fit the model
+set.seed(12322)
 modFit <- train(classe ~ ., data = trainingclean, method = "rf", preProcess = "pca")
 modFit
 
