@@ -12,8 +12,10 @@ Describe an overview of what you did in a few sentences.
 First, download the training and test sets from the source. The official training set will not be used until the very end.
 
 ```{r, download}
-#download.file("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv","trainingdata.csv",method="auto")
-#download.file("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv","testingdata.csv",method="auto")
+set.seed(12322)
+# These only need to be run on the first time
+# download.file("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv","trainingdata.csv",method="auto")
+# download.file("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv","testingdata.csv",method="auto")
 
 trainingdata <- read.csv("trainingdata.csv")
 finaltesting <- read.csv("testingdata.csv")
@@ -29,6 +31,8 @@ testing <- trainingdata[-inTrain,]
 ```
 
 ### Covariate Selection
+Building a model with 160 variables would be too resource intensive so we can reduce some of the variables before training the model.  
+
 When reviewing the data, the variables are not all of the same type. There are two columns that are the index number and the user name. Plotting the index and classe shows that the different activity classes were recorded in order. 
 
 ```{r}
@@ -43,21 +47,28 @@ names(training)
 sumcols <- grep("X|user_name|timestamp|window|total|kurtosis|skewness|max|min|avg|var|stddev|amplitude",names(training))
 trainingclean <- training[,-sumcols]
 ```
-
+  
+I will use prinicple component analysis to further reduce the covariates. After preprocessing with PCA, we can see that there are 23 variables that explain 95% of the variance after the variables are scaled and centered (the preProcess function defaults the threshold to .95).
 ```{r eval=FALSE}
-preProc <- preProcess(trainingclean[,-49], method="pca", pcaComp=2)
+preProc <- preProcess(trainingclean[,-49], method="pca")
 preProc$rotation
-nsv <- nearZeroVar(trainingclean,saveMetrics=T)
-modFit <- train(classe ~., method="gbm", preProcess="pca", data=trainingclean, verbose=F)
-
-modFit2 <- train(classe ~ ., data = trainingclean, method = "rf", preProcess = "pca")
+```
+  
+### Fitting the model
+The model fit will use the random forest method, after preprocessing with Principle Component Analysis.
+```{r}
+modFit <- train(classe ~ ., data = trainingclean, method = "rf", preProcess = "pca")
+modFit2
 ```
 
+Looking at the model output it estimates the out of sample accuracy as 96.7%. However, this is most likely an optimistic estimate as it was based on the training data. Applying to the model to the test data we set aside earlier will give a better estimate of the out of sample accuracy.
+```{r}
+confusionMatrix(predict(modFit2,testing),testing$classe)
+```
+
+In this case, the accuracy on the test data is slightly above what it was on the training data.
 
 ### Write the files for submission
-
-
-
 ```{r}
 pml_write_files = function(x){
   n = length(x)
@@ -68,8 +79,8 @@ pml_write_files = function(x){
 }
 ```
 
-
-```{r}
-#answers <-as.character(predict(modFit2, finaltesting))
-#pml_write_files(answers)
+The code below writes the answers as individual files to be submitted.
+```{r eval=FALSE}
+answers <-as.character(predict(modFit, finaltesting))
+pml_write_files(answers)
 ```
