@@ -33,9 +33,10 @@ preProc$rotation
 
 # Fit the model
 modFit <- train(classe ~ ., data = trainingclean, method = "rf", preProcess = "pca")
+modFit
 
 # Apply the model to the testing data set to get the out of sample error rate
-confusionMatrix(predict(modFit2,testing),testing$classe)
+confusionMatrix(predict(modFit,testing),testing$classe)
 
 # Function for creating the submission files
 pml_write_files = function(x){

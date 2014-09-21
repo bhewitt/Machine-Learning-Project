@@ -5,7 +5,7 @@ date: "Wednesday, September 17, 2014"
 output: html_document
 ---
 ## Summary
-Describe an overview of what you did in a few sentences.
+This project attempts to predict the manner in which participants performed an exercise. The participants were asked to perform barbell lifts correctly and incorrectly in 5 different ways. The data and further background can be found here: http://groupware.les.inf.puc-rio.br/har. Using a training data set of 19,622 observations, I will use the Random Forest method to create a model that will predict the "classe" used in 20 test observations.  
 
 
 ### Study design
@@ -21,7 +21,7 @@ trainingdata <- read.csv("trainingdata.csv")
 finaltesting <- read.csv("testingdata.csv")
 ```
 
-Looking at the training data, there are 19,622 observations of 160 variables. This sample set is fairly large, so for the study desing we will spit the training set into training and test groups. We will use the training set to pick features and build the model. We will use k-fold cross validation on the training set to estimate the out of sample error and then apply to the test set to get a better estimate of the out of sample error. The code below separates 80% of the data into the training group, which will be divided up during cross-validation, and 20% into the testing group.
+Looking at the training data, there are 19,622 observations of 160 variables. This sample set is fairly large, so for the study desing we will spit the training set into training and test groups. We will use this "training" subset to pick features and build the model and use the "testing" subset to estimate the out of sample error rate. The code below separates 80% of the data into the training group and 20% into the testing group. The error rate that will be tested is accuracy.
 
 ```{r, split}
 library(caret);library(ggplot2)
@@ -31,9 +31,10 @@ testing <- trainingdata[-inTrain,]
 ```
 
 ### Covariate Selection
-Building a model with 160 variables would be too resource intensive so we can reduce some of the variables before training the model.  
+Building a model with 160 variables would be too resource intensive so we need to eliminate unhelpful variables before training the model.  
+  
+When reviewing the data, the variables are not all of the same type. There are two columns that are the index number and the user name. Plotting the index and classe shows that the different activity classes were recorded in order.
 
-When reviewing the data, the variables are not all of the same type. There are two columns that are the index number and the user name. Plotting the index and classe shows that the different activity classes were recorded in order. 
 
 ```{r}
 qplot(X,classe, colour = user_name,data=training)
@@ -41,34 +42,38 @@ qplot(X,classe, colour = user_name,data=training)
 
 There are 3 timestamp variables that appear to be recording when the activites were completed. We will ignore these in the final model.  
   
-There also appear to be columns that are summaries or descriptions of the preceding columns. They have names such as "total_accel_belt" which can be interpreted as the total accelaration from the belt sensor. These columns will not be included in the final model.
+There also appear to be columns that are summaries or descriptions of the preceding columns. They have names such as "total_accel_belt" which can be interpreted as the total accelaration from the belt sensor. These columns will not be included in the final model. The code below lists the names of the variables, then searches through the names to remove columns with timestamps, index numbers or summary statistics.  
+
 ```{r,cleanup}
 names(training)
 sumcols <- grep("X|user_name|timestamp|window|total|kurtosis|skewness|max|min|avg|var|stddev|amplitude",names(training))
 trainingclean <- training[,-sumcols]
 ```
   
-I will use prinicple component analysis to further reduce the covariates. After preprocessing with PCA, we can see that there are 23 variables that explain 95% of the variance after the variables are scaled and centered (the preProcess function defaults the threshold to .95).
-```{r eval=FALSE}
+I will use prinicple component analysis to further reduce the covariates. After preprocessing with PCA, we can see that there are 23 variables that explain 95% of the variance after the variables are scaled and centered (the preProcess function defaults the threshold to .95).  
+```{r }
 preProc <- preProcess(trainingclean[,-49], method="pca")
-preProc$rotation
 ```
   
 ### Fitting the model
-The model fit will use the random forest method, after preprocessing with Principle Component Analysis.
-```{r}
+The model fit will use the random forest method, after preprocessing with Principle Component Analysis.  
+```{r, cache=TRUE, message=FALSE, warning=FALSE}
 modFit <- train(classe ~ ., data = trainingclean, method = "rf", preProcess = "pca")
 modFit2
 ```
 
-Looking at the model output it estimates the out of sample accuracy as 96.7%. However, this is most likely an optimistic estimate as it was based on the training data. Applying to the model to the test data we set aside earlier will give a better estimate of the out of sample accuracy.
+Looking at the model output it estimates the out of sample accuracy as 100%. However, this is a very optimistic estimate as it was based on the training data. The train function uses cross validation to arrive at the best fitting model to the training data. The method used by default is bootstrap resampling.  
+  
+Since we set aside a "testing" set earlier, we can apply the model to the test data set to get better estimate of the out of sample accuracy.
+
 ```{r}
 confusionMatrix(predict(modFit2,testing),testing$classe)
 ```
 
-In this case, the accuracy on the test data is slightly above what it was on the training data.
+In this case, the accuracy on the test data is slightly above what it was on the training data. The expected out of sample error is .003%.  
 
 ### Write the files for submission
+The function below creates individual files for the data to be submitted.  
 ```{r}
 pml_write_files = function(x){
   n = length(x)
@@ -79,7 +84,8 @@ pml_write_files = function(x){
 }
 ```
 
-The code below writes the answers as individual files to be submitted.
+We then take the model and apply it to the final testing data and submit for review.  
+
 ```{r eval=FALSE}
 answers <-as.character(predict(modFit, finaltesting))
 pml_write_files(answers)
