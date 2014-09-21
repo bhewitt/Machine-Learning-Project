@@ -10,4 +10,6 @@ download.file("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.c
 training <- read.csv("trainingdata.csv")
 testing <- read.csv("testingdata.csv")
 head(training)
-
+windowyes <- trainingdata[trainingdata$new_window=="yes",]
+names(training)
+"total|kurtosis|skewness|max|min|avg|var|stddev|"

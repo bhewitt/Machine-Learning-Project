@@ -2,21 +2,74 @@
 title: "Machine Learning Writeup"
 author: "Brad Hewitt"
 date: "Wednesday, September 17, 2014"
-output: word_document
+output: html_document
 ---
+## Summary
+Describe an overview of what you did in a few sentences.
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+### Study design
+First, download the training and test sets from the source. The official training set will not be used until the very end.
+
+```{r, download}
+#download.file("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv","trainingdata.csv",method="auto")
+#download.file("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv","testingdata.csv",method="auto")
+
+trainingdata <- read.csv("trainingdata.csv")
+finaltesting <- read.csv("testingdata.csv")
+```
+
+Looking at the training data, there are 19,622 observations of 160 variables. This sample set is fairly large, so for the study desing we will spit the training set into training and test groups. We will use the training set to pick features and build the model. We will use k-fold cross validation on the training set to estimate the out of sample error and then apply to the test set to get a better estimate of the out of sample error. The code below separates 80% of the data into the training group, which will be divided up during cross-validation, and 20% into the testing group.
+
+```{r, split}
+library(caret);library(ggplot2)
+inTrain <- createDataPartition(y=trainingdata$classe, p=.8, list=F)
+training <- trainingdata[inTrain,]
+testing <- trainingdata[-inTrain,]
+```
+
+### Covariate Selection
+When reviewing the data, the variables are not all of the same type. There are two columns that are the index number and the user name. Plotting the index and classe shows that the different activity classes were recorded in order. 
 
 ```{r}
-summary(cars)
+qplot(X,classe, colour = user_name,data=training)
 ```
 
-You can also embed plots, for example:
-
-```{r, echo=FALSE}
-plot(cars)
+There are 3 timestamp variables that appear to be recording when the activites were completed. We will ignore these in the final model.  
+  
+There also appear to be columns that are summaries or descriptions of the preceding columns. They have names such as "total_accel_belt" which can be interpreted as the total accelaration from the belt sensor. These columns will not be included in the final model.
+```{r,cleanup}
+names(training)
+sumcols <- grep("X|user_name|timestamp|window|total|kurtosis|skewness|max|min|avg|var|stddev|amplitude",names(training))
+trainingclean <- training[,-sumcols]
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+```{r eval=FALSE}
+preProc <- preProcess(trainingclean[,-49], method="pca", pcaComp=2)
+preProc$rotation
+nsv <- nearZeroVar(trainingclean,saveMetrics=T)
+modFit <- train(classe ~., method="gbm", preProcess="pca", data=trainingclean, verbose=F)
+
+modFit2 <- train(classe ~ ., data = trainingclean, method = "rf", preProcess = "pca")
+```
+
+
+### Write the files for submission
+
+
+
+```{r}
+pml_write_files = function(x){
+  n = length(x)
+  for(i in 1:n){
+    filename = paste0("problem_id_",i,".txt")
+    write.table(x[i],file=filename,quote=FALSE,row.names=FALSE,col.names=FALSE)
+  }
+}
+```
+
+
+```{r}
+#answers <-as.character(predict(modFit2, finaltesting))
+#pml_write_files(answers)
+```
